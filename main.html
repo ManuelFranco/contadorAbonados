@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contador de Abonados - Real Murcia</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #7b001c;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background-color: #ffffff;
+      color: #7b001c;
+      padding: 50px 60px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .card h1 {
+      font-size: 2.2em;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    #contador {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      font-size: 5em;
+      font-weight: bold;
+      color: #d50032;
+      height: 1em;
+    }
+
+    .digit {
+      display: inline-block;
+      position: relative;
+      overflow: hidden;
+      width: 0.6em;
+      height: 1em;
+    }
+
+    .digit span {
+      display: block;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.4s ease-in-out;
+    }
+
+    .digit.changed span.old {
+      transform: translateY(-100%);
+    }
+
+    .digit.changed span.new {
+      transform: translateY(0%);
+    }
+
+    .digit span.new {
+      transform: translateY(100%);
+    }
+
+    #actualizado {
+      font-size: 0.95em;
+      color: #555;
+      margin-top: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        padding: 30px 20px;
+      }
+      #contador {
+        font-size: 3.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Ya somos</h1>
+    <div id="contador"></div>
+    <div id="actualizado">Última actualización: --</div>
+  </div>
+
+  <script>
+    const url = "https://apiteatros.compralaentrada.com/api1/f/zonas?tid=J1fKG9AarPuPNJ5hwY0t&renovacion=0";
+    let ultimoNumero = "";
+
+    async function actualizarContador() {
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const zonas = data.data;
+
+        let total = 0;
+        zonas.forEach(zona => {
+          total += zona.total_asientos - zona.libres;
+        //total += zona.libres;
+        });
+
+        const nuevoNumero = total.toLocaleString('es-ES');
+
+        animarCambioDeNumero(nuevoNumero);
+
+        const ahora = new Date();
+        const fecha = ahora.toLocaleString('es-ES', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        document.getElementById('actualizado').textContent = `Última actualización: ${fecha}`;
+      } catch (error) {
+        console.error("Error al actualizar contador:", error);
+        document.getElementById('actualizado').textContent = `Error al conectar con el servidor.`;
+      }
+    }
+
+    function animarCambioDeNumero(nuevoNumero) {
+      const contenedor = document.getElementById('contador');
+      const antiguo = ultimoNumero;
+      ultimoNumero = nuevoNumero;
+
+      contenedor.innerHTML = '';
+
+      for (let i = 0; i < nuevoNumero.length; i++) {
+        const nuevoChar = nuevoNumero[i];
+        const viejoChar = antiguo[i] || '';
+
+        const digitDiv = document.createElement('div');
+        digitDiv.className = 'digit' + (nuevoChar !== viejoChar ? ' changed' : '');
+
+        const spanOld = document.createElement('span');
+        spanOld.className = 'old';
+        spanOld.textContent = viejoChar || nuevoChar;
+
+        const spanNew = document.createElement('span');
+        spanNew.className = 'new';
+        spanNew.textContent = nuevoChar;
+
+        digitDiv.appendChild(spanOld);
+        digitDiv.appendChild(spanNew);
+
+        contenedor.appendChild(digitDiv);
+      }
+    }
+
+    actualizarContador();
+    setInterval(actualizarContador, 60000);
+  </script>
+</body>
+</html>
