@@ -8,78 +8,74 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #7b001c;
+      background-color: #7b001c; /* Rojo grana */
       color: #ffffff;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
     }
 
-    .card {
+    .main-card {
       background-color: #ffffff;
       color: #7b001c;
-      padding: 50px 60px;
+      padding: 40px 60px;
       border-radius: 16px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       text-align: center;
-      max-width: 500px;
-      width: 90%;
+      margin-bottom: 20px;
     }
 
-    .card h1 {
-      font-size: 2.2em;
+    .main-card h1 {
+      font-size: 2em;
       margin-bottom: 10px;
       font-weight: bold;
     }
 
     #contador {
-      display: flex;
-      justify-content: center;
-      gap: 5px;
       font-size: 5em;
       font-weight: bold;
+      margin: 20px 0;
       color: #d50032;
-      height: 1em;
-    }
-
-    .digit {
-      display: inline-block;
-      position: relative;
-      overflow: hidden;
-      width: 0.6em;
-      height: 1em;
-    }
-
-    .digit span {
-      display: block;
-      width: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      transition: transform 0.4s ease-in-out;
-    }
-
-    .digit.changed span.old {
-      transform: translateY(-100%);
-    }
-
-    .digit.changed span.new {
-      transform: translateY(0%);
-    }
-
-    .digit span.new {
-      transform: translateY(100%);
     }
 
     #actualizado {
       font-size: 0.95em;
       color: #555;
-      margin-top: 15px;
+    }
+
+    .desglose {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .zona-card {
+      background-color: #fff;
+      color: #7b001c;
+      border-radius: 12px;
+      padding: 20px 30px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+      min-width: 180px;
+      text-align: center;
+    }
+
+    .zona-card h3 {
+      margin: 0;
+      font-size: 1.1em;
+    }
+
+    .zona-card .abonados {
+      font-size: 2em;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #d50032;
     }
 
     @media (max-width: 600px) {
-      .card {
+      .main-card {
         padding: 30px 20px;
       }
       #contador {
@@ -89,15 +85,18 @@
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="main-card">
     <h1>Ya somos</h1>
-    <div id="contador"></div>
+    <div id="contador">0</div>
     <div id="actualizado">Última actualización: --</div>
+  </div>
+
+  <div class="desglose" id="desgloseZonas">
+    <!-- Aquí se insertará dinámicamente el desglose -->
   </div>
 
   <script>
     const url = "https://apiteatros.compralaentrada.com/api1/f/zonas?tid=J1fKG9AarPuPNJ5hwY0t&renovacion=0";
-    let ultimoNumero = "";
 
     async function actualizarContador() {
       try {
@@ -105,15 +104,38 @@
         const data = await res.json();
         const zonas = data.data;
 
+        const diccionario_gradas = {
+          "Lateral": 0,
+          "Preferente": 0,
+          "Fondo Norte": 0,
+          "Fondo Sur": 0
+        };
+
         let total = 0;
+
         zonas.forEach(zona => {
-          total += zona.total_asientos - zona.libres;
-        //total += zona.libres;
+          const nombre = zona.name;
+          for (const clave in diccionario_gradas) {
+            if (nombre.includes(clave) && zona.esta_disponible) {
+              const abonados = zona.total_asientos - zona.libres;
+              diccionario_gradas[clave] += abonados;
+              total += abonados;
+              break;
+            }
+          }
         });
 
-        const nuevoNumero = total.toLocaleString('es-ES');
+        document.getElementById('contador').textContent = total.toLocaleString('es-ES');
 
-        animarCambioDeNumero(nuevoNumero);
+        const desgloseDiv = document.getElementById('desgloseZonas');
+        desgloseDiv.innerHTML = '';
+
+        for (const [zona, valor] of Object.entries(diccionario_gradas)) {
+          const card = document.createElement('div');
+          card.className = 'zona-card';
+          card.innerHTML = `<h3>${zona}</h3><div class="abonados">${valor.toLocaleString('es-ES')}</div>`;
+          desgloseDiv.appendChild(card);
+        }
 
         const ahora = new Date();
         const fecha = ahora.toLocaleString('es-ES', {
@@ -124,35 +146,6 @@
       } catch (error) {
         console.error("Error al actualizar contador:", error);
         document.getElementById('actualizado').textContent = `Error al conectar con el servidor.`;
-      }
-    }
-
-    function animarCambioDeNumero(nuevoNumero) {
-      const contenedor = document.getElementById('contador');
-      const antiguo = ultimoNumero;
-      ultimoNumero = nuevoNumero;
-
-      contenedor.innerHTML = '';
-
-      for (let i = 0; i < nuevoNumero.length; i++) {
-        const nuevoChar = nuevoNumero[i];
-        const viejoChar = antiguo[i] || '';
-
-        const digitDiv = document.createElement('div');
-        digitDiv.className = 'digit' + (nuevoChar !== viejoChar ? ' changed' : '');
-
-        const spanOld = document.createElement('span');
-        spanOld.className = 'old';
-        spanOld.textContent = viejoChar || nuevoChar;
-
-        const spanNew = document.createElement('span');
-        spanNew.className = 'new';
-        spanNew.textContent = nuevoChar;
-
-        digitDiv.appendChild(spanOld);
-        digitDiv.appendChild(spanNew);
-
-        contenedor.appendChild(digitDiv);
       }
     }
 
